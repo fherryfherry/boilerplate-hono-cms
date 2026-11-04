@@ -1,0 +1,7 @@
+# Steps run in order against the production checkout after every publish.
+# Edit freely — each command is re-validated server-side before it runs.
+steps:
+  - name: Install dependencies
+    run: npm ci --omit=dev
+  - name: Run database migrations
+    run: node src/db/migrate.js

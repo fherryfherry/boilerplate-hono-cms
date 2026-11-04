@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+.env
+.tmp/
+storage/*.sqlite
+storage/*.sqlite-*
+.tnpg/*/start.log
+.tnpg/*/db.yaml

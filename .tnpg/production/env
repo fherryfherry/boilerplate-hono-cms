@@ -1,0 +1,3 @@
+APP_URL=${TNPG_PUBLIC_URL}
+APP_ENV=production
+NODE_ENV=production
