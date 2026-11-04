@@ -42,7 +42,7 @@ async function runSeed() {
 
   const defaultSettings = [
     ['site_name', 'TanpaNgoding Workspace'],
-    ['site_description', 'Sistem manajemen modern berbasis Hono, HTMX, dan Shadcn UI'],
+    ['site_description', 'Sistem manajemen modern berbasis Hono API, Vue 3, dan Shadcn UI'],
     ['support_email', 'admin@example.com'],
     ['maintenance_mode', 'false'],
   ];

@@ -1,9 +1,9 @@
 const crypto = require('crypto');
-const { getCookie, setCookie, deleteCookie } = require('hono/cookie');
 const { getEnv } = require('../config/env');
+const { fail } = require('../lib/http');
 const db = require('../db/client');
 
-const SESSION_COOKIE = 'tnpg_session';
+const TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 
 function signToken(payload, secret) {
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
@@ -27,33 +27,22 @@ function verifyToken(token, secret) {
   }
 }
 
-function setSessionUser(c, user) {
+function issueToken(user) {
   const { appKey } = getEnv();
-  const token = signToken(
-    {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      exp: Date.now() + 1000 * 60 * 60 * 24 * 7,
-    },
-    appKey
-  );
-  setCookie(c, SESSION_COOKIE, token, {
-    path: '/',
-    httpOnly: true,
-    sameSite: 'Lax',
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  const expiresAt = Date.now() + TOKEN_TTL_MS;
+  const token = signToken({ id: user.id, email: user.email, role: user.role, exp: expiresAt }, appKey);
+  return { token, expiresAt: new Date(expiresAt).toISOString() };
 }
 
-function clearSessionUser(c) {
-  deleteCookie(c, SESSION_COOKIE, { path: '/' });
+function readBearerToken(c) {
+  const header = c.req.header('authorization') || '';
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : null;
 }
 
-async function loadSessionMiddleware(c, next) {
+async function loadUserMiddleware(c, next) {
   const { appKey } = getEnv();
-  const token = getCookie(c, SESSION_COOKIE);
-  const payload = verifyToken(token, appKey);
+  const payload = verifyToken(readBearerToken(c), appKey);
   if (payload?.id) {
     try {
       const user = await db.get(
@@ -71,14 +60,8 @@ async function loadSessionMiddleware(c, next) {
 }
 
 async function requireAuth(c, next) {
-  const user = c.get('user');
-  const url = c.get('url');
-  if (!user) {
-    if (c.req.header('HX-Request')) {
-      c.header('HX-Redirect', url('/login'));
-      return c.text('', 401);
-    }
-    return c.redirect(url('/login'));
+  if (!c.get('user')) {
+    return fail(c, 401, 'Silakan login terlebih dahulu.', 'UNAUTHENTICATED');
   }
   await next();
 }
@@ -86,17 +69,19 @@ async function requireAuth(c, next) {
 function requireRole(...roles) {
   return async (c, next) => {
     const user = c.get('user');
-    if (!user || !roles.includes(user.role)) {
-      return c.text('Forbidden: insufficient role permissions', 403);
+    if (!user) return fail(c, 401, 'Silakan login terlebih dahulu.', 'UNAUTHENTICATED');
+    if (!roles.includes(user.role)) {
+      return fail(c, 403, 'Anda tidak memiliki akses untuk aksi ini.', 'FORBIDDEN');
     }
     await next();
   };
 }
 
 module.exports = {
-  loadSessionMiddleware,
+  signToken,
+  verifyToken,
+  issueToken,
+  loadUserMiddleware,
   requireAuth,
   requireRole,
-  setSessionUser,
-  clearSessionUser,
 };

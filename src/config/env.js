@@ -7,6 +7,10 @@ function getEnv() {
     appEnv: process.env.APP_ENV || process.env.NODE_ENV || 'local',
     appKey: process.env.APP_KEY || 'default-dev-secret-change-in-env',
     port: Number(process.env.PORT || 8000),
+    corsOrigins: String(process.env.CORS_ORIGINS || '*')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
     dbConnection: (process.env.DB_CONNECTION || 'sqlite').toLowerCase(),
     dbHost: process.env.DB_HOST || '127.0.0.1',
     dbPort: Number(process.env.DB_PORT || (process.env.DB_CONNECTION === 'pgsql' ? 5432 : 3306)),
