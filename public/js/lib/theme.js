@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 
-const isDark = ref(localStorage.getItem('tnpg_theme') !== 'light');
+const isDark = ref(localStorage.getItem('tnpg_theme') === 'dark');
 
 export function useTheme() {
   function apply() {
